@@ -9,17 +9,17 @@ on:
       - 'src/backend/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: write
+  issues: write
+
 jobs:
   deploy:
     if: (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      pull-requests: write
-      actions: read
-      checks: read
 
     steps:
       - uses: actions/checkout@v4
