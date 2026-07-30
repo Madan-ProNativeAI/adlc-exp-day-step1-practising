@@ -73,23 +73,36 @@ jobs:
               "repository": "${{ github.repository }}",
               "commit_sha": "${{ github.sha }}"
             }'
-
+      # Optional: mint a GitHub App token so the PR comment author is
+      # pronative-ai[bot] (green "p" avatar) instead of github-actions[bot].
+      # Requires secrets PRONATIVE_APP_ID + PRONATIVE_APP_PRIVATE_KEY.
+      # If missing, continue-on-error falls back to GITHUB_TOKEN below.
+      - name: Generate app token
+        id: app-token
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PRONATIVE_APP_ID }}
+          private-key: ${{ secrets.PRONATIVE_APP_PRIVATE_KEY }}
+          
       - name: Trigger PR Code Review + Critic
         id: code-review
         if: github.event_name == 'pull_request' && always()
         env:
           PRONATIVE_REVIEW_URL: https://ca-adlc-blr-2608-agents.grayrock-0cea75cd.centralindia.azurecontainerapps.io
+          REVIEW_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           response=$(curl -s -S -X POST "${PRONATIVE_REVIEW_URL}/api/code-review/review/github" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${REVIEW_TOKEN}" \
             -d "{
               \"repository\": \"${{ github.repository }}\",
               \"pull_request_number\": ${{ github.event.pull_request.number }},
               \"commit_sha\": \"${{ github.event.pull_request.head.sha }}\",
               \"enable_critic\": true
             }")
-          echo "Code Review response: $response"
+          echo "PR Review response: $response"
           report_id=$(echo "$response" | jq -r '.agent_report.report_id // .agent_report.id // empty')
           echo "report_id=$report_id" >> "$GITHUB_OUTPUT"
           critic_applied=$(echo "$response" | jq -r '.agent_report.critic_applied // false')
