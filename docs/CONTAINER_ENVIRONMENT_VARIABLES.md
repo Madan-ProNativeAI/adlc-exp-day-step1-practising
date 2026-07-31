@@ -1,4 +1,4 @@
-# Container Environment Variables
+# IMPORTANT: Container Environment Variables
 
 Environment variables injected into Azure Container App containers, sourced from `.azure/container-app.tmpl.yaml`.
 
